@@ -10,14 +10,19 @@ BATCH_SIZE = 64
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
+def create_default_2d_layer(in_c=1, out_c=64, kernel_size=(7, 7),
+                            stride=(2, 2), padding=(3, 3), bias=False):
+    return torch.nn.Conv2d(in_c, out_c, kernel_size=kernel_size,
+                           stride=stride,  padding=padding, bias=False)
+
+
 # create the nn model
 # resnet
-def create_model(device=DEVICE):
+def create_model(layer_1, classes=2, device=DEVICE):
     # load resnet
-    model = resnet18(num_classes=2)
+    model = resnet18(num_classes=classes)
     # adapt first layer to gray
-    model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=(7, 7),
-                                  stride=(2, 2),  padding=(3, 3), bias=False)
+    model.conv1 = layer_1
     model.to(device)
     return model
 
@@ -100,9 +105,11 @@ def train_epochs(x_train, y_train, model, loss_fn, optimizer,
     print(loss.item())
 
 
-def train_and_test(x_train, y_train, x_test,  fn_parameter=get_hyperparameter,
+def train_and_test(x_train, y_train, x_test,
+                   layer_1=create_default_2d_layer(), classes=2,
+                   fn_parameter=get_hyperparameter,
                    device=DEVICE, epochs=EPOCHS, batch_size=BATCH_SIZE):
-    model = create_model(device)
+    model = create_model(layer_1, classes,  device=device)
     loss_fn, optimizer = fn_parameter(model)
     train_epochs(x_train, y_train, model, loss_fn, optimizer,
                  epochs, batch_size, device)

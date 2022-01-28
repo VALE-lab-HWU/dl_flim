@@ -14,12 +14,11 @@ import data_helper as dh
 import model_helper as mh
 import explain_helper as eh
 import ml_helper as mlh
-import ml_helper as mlh
 import data_helper as dh
 import dl_helper as dlh
 
 PATH = dh.PATH+'/cleaned'
-FILE_PREFIX = 'processed_cleaned_'
+FILE_PREFIX = 'band_cleaned_'
 FILE_SUFFIX = '_all_patient.pickle'
 FILEMAIN = 'MDCEBL'
 
@@ -46,11 +45,10 @@ def main(path=PATH, filename=FILENAME, device=dlh.DEVICE):
     d1, l1, p1 = data[id1], label[id1], patient[id1]
     d2, l2, p2 = data[id2], label[id2], patient[id2]
     x_train, x_test, y_train, y_test = train_test_split(d1, l1)
-    pred = dlh.train_and_test(x_train, y_train, x_test, get_hyperparameter, device, epochs=3)
+    layer_1 = dlh.create_default_2d_layer()
+    pred = dlh.train_and_test(x_train, y_train, x_test, layer_1,
+                              get_hyperparameter, device, epochs=20)
 
 
 if __name__ == '__main__':
     main()
-
-A = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]
-B = [[4, 5, 6], [7, 8, 9], [10, 11, 12], [13, 14, 15]]
