@@ -9,6 +9,7 @@ import dl_helper as dlh
 import torch
 import numpy as np
 import ml_helper as mlh
+import data_helper as dh
 from PIL import Image
 from sklearn.metrics import accuracy_score
 from skimage.color import rgb2gray
@@ -75,12 +76,35 @@ def reshape(x):
 
 
 def two():
+    """
+    data from Breast Histopathology Images dataset on Kaggle
+    https://www.kaggle.com/datasets/paultimothymooney/breast-histopathology-images
+    """
     x_train, y_train, x_test, y_test = read_histo_small()
     n_class = len(np.unique(y_train))
     layer_1 = dlh.create_default_2d_layer()
     x_train = reshape(x_train)
     x_test = reshape(x_test)
-    pred = dlh.train_and_test(x_train, y_train, x_test, layer_1,
+    pred, model = dlh.train_and_test(x_train, y_train, x_test, layer_1,
+                                     n_class,
+                                     get_hyperparameter, dlh.DEVICE, epochs=20)
+    print(accuracy_score(y_test, pred))
+    return model
+
+
+def three():
+    """
+    data from my own PhD research
+    intensity
+    """
+    lf, label, patient, band = dh.get_data_complete(dh.PATH_CLEANED,
+                                                    dh.FILENAME, feature='lf')
+    lf = lf.reshape(-1, 1, 128, 128)
+    x_train, y_train, x_test, y_test = mlh.split_on_patients(lf, label,
+                                                             patient, split=3)
+    n_class = len(np.unique(y_train))
+    layer_1 = dlh.create_default_2d_layer()
+    pred = dlh.train_and_test(x_train, y_train, x_train, layer_1,
                               n_class,
                               get_hyperparameter, dlh.DEVICE, epochs=20)
     print(accuracy_score(y_test, pred))

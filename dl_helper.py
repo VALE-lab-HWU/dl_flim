@@ -1,9 +1,10 @@
 import torch
 from torchvision.models import resnet18
+from torchvision.models import resnext50_32x4d
 from torch.utils.data import DataLoader
 import numpy as np
 
-EPOCHS = 100
+EPOCHS = 15
 NUM_CLASSES = 2
 BATCH_SIZE = 64
 
@@ -20,7 +21,8 @@ def create_default_2d_layer(in_c=1, out_c=64, kernel_size=(7, 7),
 # resnet
 def create_model(layer_1, classes=2, device=DEVICE):
     # load resnet
-    model = resnet18(num_classes=classes)
+    # model = resnet18(num_classes=classes)
+    model = resnext50_32x4d(num_classes=classes)
     # adapt first layer to gray
     model.conv1 = layer_1
     model.to(device)
@@ -58,8 +60,8 @@ def train_batches(train_dataloader, model, loss_fn, optimizer, device=DEVICE):
         loss = train_step(X.to(device).float(), y.to(device), model,
                           loss_fn, optimizer)
         if (round(batch % (n_batch/10)) == 0):
-            loss, current = loss.item(), batch * len(X)
-            print(f"loss: {loss:>7f}  [{current}/{size}]")
+            loss2, current = loss.item(), batch * len(X)
+            print(f"loss: {loss2:>7f}  [{current}/{size}]")
     return loss
 
 
@@ -114,4 +116,4 @@ def train_and_test(x_train, y_train, x_test,
     train_epochs(x_train, y_train, model, loss_fn, optimizer,
                  epochs, batch_size, device)
     pred = test(x_test, model)
-    return np.argmax(pred, axis=1)
+    return np.argmax(pred, axis=1), model
