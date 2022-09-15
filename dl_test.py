@@ -14,6 +14,8 @@ from PIL import Image
 from sklearn.metrics import accuracy_score
 from skimage.color import rgb2gray
 import matplotlib.pyplot as plt
+from skimage.measure import block_reduce
+
 
 def get_hyperparameter(model):
     loss_fn = torch.nn.CrossEntropyLoss()
@@ -351,7 +353,7 @@ def reconstruct_image(path, idx):
 def reconstruct_images(path):
     listdir = os.listdir(path)
     for i in range(len(listdir)):
-        print(f'{i}/{len(listdir)}', end='\r')
+        print(f'{i+1}/{len(listdir)}', end='\r')
         try:
             int(listdir[i])
         except ValueError:
@@ -364,3 +366,49 @@ def reconstruct_images(path):
 
 path = "../data/Breast Histopathology Images"
 reconstruct_images(path)
+
+
+####
+####
+def take_nxm(i, j, n, m, grid):
+    return grid[i:i+n, j:j+m]
+
+
+def create_nxm_from_one_image(n, m, path, name):
+    img = np.array(Image.open(f"{path}/{name}.png"))
+    grid = np.array(Image.open(f"{path}/{name}_grid.png"))
+    grid_8 = block_reduce(grid, (8, 8), np.min)
+    n8 = round(n/8)
+    m8 = round(m/8)
+    i_max = len(grid_8) - n8
+    j_max = len(grid_8[0]) - m8
+    for _ in range(500):
+        i, j = np.random.randint((i_max, j_max))
+        tmp_grid_8 = take_nxm(i, j, n8, m8, grid_8)
+        if not (tmp_grid_8 == 0).any():
+            i = i*8
+            j = j*8
+            print(f'found in {i} {j}')
+            tmp_grid = take_nxm(i, j, n, m, grid)
+            if (tmp_grid == 2).sum() > (n*m//10):
+                label = 2
+            else:
+                label = 1
+            tmp_img = take_nxm(i, j, n, m, img)
+            Image.fromarray(tmp_img) \
+                 .save(f'{path}/data_128/{label}/{name}_{i}_{j}.png')
+
+
+def create_nxm_images(n, m, path):
+    listdir = os.listdir(path)
+    for i in range(len(listdir)):
+        print(f'{i+1}/{len(listdir)}', end='\r')
+        try:
+            int(listdir[i])
+        except ValueError:
+            continue
+        create_nxm_from_one_image(n, m, path, listdir[i])
+
+
+path = "../data/Breast Histopathology Images"
+create_nxm_images(128, 128, path)
