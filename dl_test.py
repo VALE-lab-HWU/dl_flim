@@ -312,7 +312,7 @@ read_one_idx(path, listdir[0], ax)
 # read_one_idx(path2, listdir[0], ax)
 
 
-def reconstruct_one_label(n, names, img, path):
+def reconstruct_one_label(n, names, img, path, grid, label):
     for i in range(len(n)):
         read = Image.open(f"{path}/{names[i]}")
         # print(img.shape)
@@ -321,6 +321,8 @@ def reconstruct_one_label(n, names, img, path):
         # print(n[i][1],n[i][1]+read.width)
         img[n[i][2]:n[i][2]+read.height,
             n[i][1]:n[i][1]+read.width] = np.array(read)
+        grid[n[i][2]:n[i][2]+read.height,
+             n[i][1]:n[i][1]+read.width] = label
     return img
 
 
@@ -339,10 +341,11 @@ def reconstruct_image(path, idx):
         path0)
     n1, names1, xmax1, ymax1 = names_one_label(
         path1)
-    img = np.zeros((max(ymax0, ymax1)+50, max(xmax0, xmax1)+50, 3))
-    img = reconstruct_one_label(n0, names0, img, path0)
-    img = reconstruct_one_label(n1, names1, img, path1)
-    return img.astype(np.uint8)
+    img = np.full((max(ymax0, ymax1)+50, max(xmax0, xmax1)+50, 3), 0)
+    grid = np.full((max(ymax0, ymax1)+50, max(xmax0, xmax1)+50), 0)
+    img = reconstruct_one_label(n0, names0, img, path0, grid, 1)
+    img = reconstruct_one_label(n1, names1, img, path1, grid, 2)
+    return img.astype(np.uint8), grid.astype(np.int8)
 
 
 def reconstruct_images(path):
@@ -353,8 +356,10 @@ def reconstruct_images(path):
             int(listdir[i])
         except ValueError:
             continue
-        img = reconstruct_image(path, listdir[i])
+        img, grid = reconstruct_image(path, listdir[i])
         Image.fromarray(img).save(f'{path}/{listdir[i]}.png')
+        Image.fromarray(grid).save(f'{path}/{listdir[i]}_grid.png')
+
 
 
 path = "../data/Breast Histopathology Images"
