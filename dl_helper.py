@@ -3,6 +3,7 @@ from torchvision.models import resnet18
 from torchvision.models import resnext50_32x4d
 from torch.utils.data import DataLoader
 import numpy as np
+from sklearn.metrics import accuracy_score
 
 from tqdm import tqdm_notebook as tqdm
 from time import time
@@ -14,8 +15,14 @@ BATCH_SIZE = 32
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
+# evaluate prediction
+def evaluate_pred(y_test, pred):
+    y_pred = pred.argmax(axis=1)
+    return accuracy_score(y_test, y_pred)
+
+
 # compute loss for the validation dataset
-def validate(val_dl, model, loss_fn, log=False, device=DEVICE):
+def validate(val_dl, model, loss_fn, log=0, device=DEVICE):
     model.to(device)
     model.eval()
     loss = 0
@@ -26,7 +33,7 @@ def validate(val_dl, model, loss_fn, log=False, device=DEVICE):
             pred = model(data)
             l = loss_fn(pred, labels)
             loss += l.item() / len(val_dl)
-        if log:
+        if log == 1:
             print(f"validate loss: {loss:>7f}")
     return loss
 
@@ -43,27 +50,30 @@ def train_step(X, y, model, loss_fn, optimizer):
 
 
 # do one epoch
-def train_batches(train_dataloader, model, loss_fn, optimizer, log=False,
+def train_batches(train_dataloader, model, loss_fn, optimizer, log=0,
                   device=DEVICE):
     size = len(train_dataloader.dataset)
     n_batch = len(train_dataloader)
     for batch, (X, y) in tqdm(enumerate(train_dataloader), total=n_batch):
         loss = train_step(X.to(device).float(), y.to(device), model,
                           loss_fn, optimizer)
-        if log:
+        if log == 2:
             if batch % (n_batch//10) == 0:
                 l, current = loss.item(), batch * len(X)
                 print(f"training loss: {l:>7f}  [{current}/{size}]")
+    if log == 1:
+        l = loss.item()
+        print(f"training loss: {l:>7f}")
     return loss
 
 
 # run through epoch
-def train_epochs(train_dl, val_dl, model, loss_fn, optimizer, log=False,
+def train_epochs(train_dl, val_dl, model, loss_fn, optimizer, log=0,
                  epochs=EPOCHS, device=DEVICE):
     val_loss = validate(val_dl, model, loss_fn, log=log, device=device)
-    for t in range(epochs):
+    for i in range(epochs):
         t = time()
-        print(f"Epoch {t+1}\n-------------------------------")
+        print(f"Epoch {i+1}\n-------------------------------")
         loss = train_batches(train_dl, model, loss_fn, optimizer, log=log,
                              device=device)
         val_loss = validate(val_dl, model, loss_fn, log=log, device=device)
@@ -84,4 +94,4 @@ def test(test_dl, model, device=DEVICE):
             data = data.to(device)
             pred = model(data)
             res.extend(pred.tolist())
-    return res
+    return torch.tensor(res)
