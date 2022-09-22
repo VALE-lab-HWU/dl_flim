@@ -1,5 +1,6 @@
 import os
 import sys
+from math import sqrt
 
 sys.path.append(os.path.dirname(os.path.abspath('.'))+'/lime')
 
@@ -370,6 +371,10 @@ reconstruct_images(path)
 
 ####
 ####
+def dist(x1, y1, x2, y2):
+    return sqrt((x1 - x2)**2 + (y1 - y2)**2)
+
+
 def take_nxm(i, j, n, m, grid):
     return grid[i:i+n, j:j+m]
 
@@ -382,21 +387,31 @@ def create_nxm_from_one_image(n, m, path, name):
     m8 = round(m/8)
     i_max = len(grid_8) - n8
     j_max = len(grid_8[0]) - m8
+    stored = []
     for _ in range(500):
         i, j = np.random.randint((i_max, j_max))
-        tmp_grid_8 = take_nxm(i, j, n8, m8, grid_8)
-        if not (tmp_grid_8 == 0).any():
-            i = i*8
-            j = j*8
-            print(f'found in {i} {j}')
-            tmp_grid = take_nxm(i, j, n, m, grid)
-            if (tmp_grid == 2).sum() > (n*m//10):
-                label = 2
-            else:
-                label = 1
-            tmp_img = take_nxm(i, j, n, m, img)
-            Image.fromarray(tmp_img) \
-                 .save(f'{path}/data_128/{label}/{name}_{i}_{j}.png')
+        too_close = False
+        for (x1, y1) in stored:
+            d = dist(x1, y1, i, j)
+            print('dist', d, '< 10', d < 10)
+            too_close = dist(x1, y1, i, j) < 10
+            if too_close:
+                break
+        if not too_close:
+            tmp_grid_8 = take_nxm(i, j, n8, m8, grid_8)
+            if not (tmp_grid_8 == 0).any():
+                stored.append((i, j))
+                i = i*8
+                j = j*8
+                print(f'found in {i} {j}')
+                tmp_grid = take_nxm(i, j, n, m, grid)
+                if (tmp_grid == 2).sum() > (n*m//10):
+                    label = 2
+                else:
+                    label = 1
+                tmp_img = take_nxm(i, j, n, m, img)
+                Image.fromarray(tmp_img) \
+                     .save(f'{path}/data_128/{label}/{name}_{i}_{j}.png')
 
 
 def create_nxm_images(n, m, path):
