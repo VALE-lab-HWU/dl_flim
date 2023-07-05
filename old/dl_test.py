@@ -427,3 +427,14 @@ def create_nxm_images(n, m, path):
 
 path = "../data/Breast Histopathology Images"
 create_nxm_images(128, 128, path)
+
+
+plt.subplot(131)
+ax1 = plt.subplot(131)
+ax2 = plt.subplot(132)
+ax3 = plt.subplot(133)
+b = transforms.Resize((48, 48), antialias=True)
+c = transforms.Resize((48, 48), antialias=False)
+ax1.imshow(rr.permute(1,2,0))
+ax2.imshow(b(rr).permute(1,2,0))
+ax3.imshow(c(rr).permute(1,2,0))
