@@ -160,9 +160,8 @@ class FlimDataset(Dataset):
 
         return x, y, p, b
 
-    def set_idx(self, idx):
-        self.idx = idx
-
-    def get_current_data(self):
-        return self.data[self.idx], self.label[self.idx], \
-               self.patient[self.idx], self.band[self.idx]
+    def get_current_data(self, idx=None):
+        if idx is None:
+            idx = self.idx
+        return self.data[idx], self.label[idx], \
+            self.patient[idx], self.band[idx]

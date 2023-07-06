@@ -64,9 +64,9 @@ def train_batches(dataloader, model, loss_fn, optimizer,
 
 
 # run through epoch
-def train_epochs(dataloader, model, loss_fn, optimizer, log=0, title='unet',
+def train_epochs(tr_dl, v_dl, model, loss_fn, optimizer, log=0, title='unet',
                  epochs=EPOCHS, device=DEVICE):
-    loss_val = validate(dataloader, model, loss_fn, log=log,
+    loss_val = validate(v_dl, model, loss_fn, log=log,
                         device=device)
     loss_train_time = []
     loss_val_time = [loss_val]
@@ -74,10 +74,10 @@ def train_epochs(dataloader, model, loss_fn, optimizer, log=0, title='unet',
     while i < epochs:
         t = time()
         print(f"Epoch {i+1}\n----------------------------")
-        loss = train_batches(dataloader, model, loss_fn, optimizer,
+        loss = train_batches(tr_dl, model, loss_fn, optimizer,
                              log=log, device=device)
         loss_train_time.append(loss)
-        loss_val = validate(dataloader, model, loss_fn, log=log,
+        loss_val = validate(v_dl, model, loss_fn, log=log,
                             device=device)
         loss_val_time.append(loss_val)
         el = time() - t
