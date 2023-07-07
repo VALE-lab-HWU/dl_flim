@@ -13,7 +13,7 @@ class FlimDataset(Dataset):
     def __init__(
             self,
             datatype='it',
-            transform=None,
+            transforms=None,
             path='../data/processed/',
             cleaned=True,
             band=True,
@@ -23,7 +23,7 @@ class FlimDataset(Dataset):
     ):
         self.seed = seed
 
-        self.transform = transform
+        self.transforms = transforms
 
         self.read_data(path, cleaned, band, clean_prefix)
         self.format_data(datatype)
@@ -32,6 +32,17 @@ class FlimDataset(Dataset):
 
         self.idx = np.arange(len(self.data))
         self.in_channels = self.data.shape[-1]
+
+        self.state = 'train'
+
+    def validate(self):
+        self.state = 'val'
+
+    def train(self):
+        self.state = 'train'
+
+    def test(self):
+        self.state = 'test'
 
     def read_data(self, path, cleaned, band, prefix):
         name = prefix + '_' + self.FILENAME
@@ -155,8 +166,8 @@ class FlimDataset(Dataset):
         p = p[idx]
         b = b[idx]
 
-        if self.transform is not None:
-            x, y = self.transform((x, y))
+        if self.transforms is not None and self.state == 'train':
+            x, y = self.transforms((x, y))
 
         return x, y, p, b
 

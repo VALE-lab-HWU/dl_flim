@@ -5,11 +5,13 @@ from torch.utils.data import DataLoader
 from torchvision.models import get_model as get_TF_model
 from torch.utils.data.sampler import SubsetRandomSampler
 from sklearn.model_selection import train_test_split
+from functools import partial
 
 from arg import parse_args
 from dataset import FlimDataset
 from utils import log, store_results
 from ml_helper import compare_class
+from transform import get_transforms
 import dl_helper
 
 
@@ -77,8 +79,14 @@ def get_data_loader(args):
 
 
 def get_dataset(args):
+    transform = partial(
+        get_transforms,
+        angle=args.tf_angle,
+        flip_prob=args.tf_flip,
+    )
     dataset = FlimDataset(
         seed=args.seed,
+        transform=transform
     )
     return dataset
 

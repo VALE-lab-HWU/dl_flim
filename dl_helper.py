@@ -24,6 +24,7 @@ def save_best_model(model, loss, title='unet'):
 def validate(dataloader, model, loss_fn, log=0, device=DEVICE):
     model.eval()
     model.to(device)
+    dataloader.dataset.validate()
     loss = 0
     with torch.no_grad():
         for _, (data, labels, _, _) in tqdm(enumerate(dataloader),
@@ -53,6 +54,7 @@ def train_batches(dataloader, model, loss_fn, optimizer,
                   log=0, device=DEVICE):
     model.train()
     model.to(device)
+    dataloader.dataset.train()
     n_batch = len(dataloader)
     for batch, (X, y, _, _) in tqdm(enumerate(dataloader), total=n_batch):
         loss = train_step(X.to(device).float(), y.to(device), model,
@@ -92,6 +94,7 @@ def train_epochs(tr_dl, v_dl, model, loss_fn, optimizer, log=0, title='unet',
 def test(dataloader, model, device=DEVICE):
     model.eval()
     model.to(device)
+    dataloader.dataset.test()
     res = []
     gt = []
     with torch.no_grad():
