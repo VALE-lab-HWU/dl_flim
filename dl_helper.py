@@ -18,7 +18,7 @@ DEVICE = "cuda"
 def save_best_model(model, loss, title='unet'):
     if len(loss) <= 2 or (len(loss) > 2 and loss[-1] < min(loss[:-1])):
         print('saving model')
-        torch.save(model.state_dict(), f'../models/{title}.pt')
+        torch.save(model.state_dict(), f'./models/{title}.pt')
 
 
 def validate(dataloader, model, loss_fn, log=0, device=DEVICE):
@@ -95,9 +95,12 @@ def test(dataloader, model, device=DEVICE):
     res = []
     gt = []
     with torch.no_grad():
-        for _, (data, y) in tqdm(enumerate(dataloader), total=len(dataloader)):
+        for i, (data, y, _, _) in tqdm(enumerate(dataloader),
+                                       total=len(dataloader)):
             data = data.to(device)
             pred = model(data)
             res.extend(pred.detach().cpu())
             gt.extend(y.detach().cpu())
+    res = torch.stack(res)
+    gt = torch.stack(gt)
     return res, gt

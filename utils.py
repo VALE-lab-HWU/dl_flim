@@ -1,4 +1,5 @@
 import torch
+import pandas as pd
 
 
 def log(msg, log_lv, log=0):
@@ -20,3 +21,7 @@ def n_t(tens, b=False):
         return tens.permute(0, *arange[3:], *arange[1:3])
     else:
         return tens.permute(*arange[2:], *arange[:2])
+
+
+def store_results(title='flim', **res):
+    pd.to_pickle(res, f'./results/result_{title}.pkl')

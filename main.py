@@ -8,7 +8,8 @@ from sklearn.model_selection import train_test_split
 
 from arg import parse_args
 from dataset import FlimDataset
-from utils import log
+from utils import log, store_results
+from ml_helper import compare_class
 import dl_helper
 
 
@@ -27,6 +28,9 @@ def main(args):
         optimizer, log=args.log,
         epochs=args.md_epochs, device=device)
     y_pred, y_true = dl_helper.test(ts_dl, model, device=device)
+    y_pred = torch.argmax(y_pred, dim=1)
+    compare_class(y_pred, y_true)
+    store_results(l_tt=l_tt, l_vt=l_vt, title=args.title+'_loss')
 
 
 def get_optimizer(args, model):
@@ -39,6 +43,7 @@ def get_model(args, in_channels):
     md = get_TF_model('ResNet50')
     md.conv1 = torch.nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2),
                                padding=(3, 3), bias=False)
+    md.fc = torch.nn.Linear(in_features=2048, out_features=2, bias=True)
     return md
 
 
