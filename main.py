@@ -26,6 +26,7 @@ def main(args):
         tr_dl, v_dl, model, loss_fn,
         optimizer, log=args.log,
         epochs=args.md_epochs, device=device)
+    y_pred, y_true = dl_helper.test(ts_dl, model, device=device)
 
 
 def get_optimizer(args, model):

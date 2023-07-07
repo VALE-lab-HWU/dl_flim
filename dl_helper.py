@@ -86,3 +86,18 @@ def train_epochs(tr_dl, v_dl, model, loss_fn, optimizer, log=0, title='unet',
         i += 1
     print('DONE!')
     return model, loss_train_time, loss_val_time
+
+
+# run the testing step
+def test(dataloader, model, device=DEVICE):
+    model.eval()
+    model.to(device)
+    res = []
+    gt = []
+    with torch.no_grad():
+        for _, (data, y) in tqdm(enumerate(dataloader), total=len(dataloader)):
+            data = data.to(device)
+            pred = model(data)
+            res.extend(pred.detach().cpu())
+            gt.extend(y.detach().cpu())
+    return res, gt
