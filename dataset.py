@@ -19,7 +19,8 @@ class FlimDataset(Dataset):
             band=True,
             clean_prefix='MDCEBL',
             shape=128,
-            seed=42
+            seed=42,
+            n_img=-1
     ):
         self.seed = seed
 
@@ -28,6 +29,7 @@ class FlimDataset(Dataset):
         self.read_data(path, cleaned, band, clean_prefix)
         self.format_data(datatype)
         self.reshape_data(shape)
+        self.cut_data(n_img)
         self.to_tensor()
 
         self.idx = np.arange(len(self.data))
@@ -147,6 +149,13 @@ class FlimDataset(Dataset):
         self.data = self.data.reshape(self.data.shape[0], shape,
                                       shape, self.data.shape[2])
 
+    def cut_data(self, n_img):
+        if n_img != -1:
+            self.data = self.data[:n_img]
+            self.label = self.label[:n_img]
+            self.band = self.band[:n_img]
+            self.patient = self.patient[:n_img]
+        
     def to_tensor(self):
         self.data = torch.from_numpy(self.data).float()
         self.label = torch.from_numpy(self.label)

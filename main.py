@@ -15,6 +15,12 @@ from transform import get_transforms
 import dl_helper
 
 
+def test_model(model, ts_dl, title):
+    y_pred, y_true = dl_helper.test(ts_dl, model, device=device)
+    y_pred = torch.argmax(y_pred, dim=1)
+    compare_class(y_pred, y_true)
+
+
 def main(args):
     device = torch.device("cpu" if not torch.cuda.is_available()
                           else args.device)
@@ -29,9 +35,12 @@ def main(args):
         tr_dl, v_dl, model, loss_fn,
         optimizer, log=args.log,
         epochs=args.md_epochs, device=device)
-    y_pred, y_true = dl_helper.test(ts_dl, model, device=device)
-    y_pred = torch.argmax(y_pred, dim=1)
-    compare_class(y_pred, y_true)
+    best_model = get_model(
+        args, tr_dl.dataset.in_channels)
+    best_model = dl_helper.load_model(args.title, best_model,
+                                      device=device)
+    test_model(model, ts_dl, 'Last model')
+    test_model(best_model, ts_dl, 'Best model')    
     store_results(l_tt=l_tt, l_vt=l_vt, title=args.title+'_loss')
 
 
@@ -79,14 +88,15 @@ def get_data_loader(args):
 
 
 def get_dataset(args):
-    transform = partial(
+    transforms = partial(
         get_transforms,
         angle=args.tf_angle,
         flip_prob=args.tf_flip,
     )
     dataset = FlimDataset(
+        n_img=args.ds_n_img,
         seed=args.seed,
-        transform=transform
+        transforms=transforms
     )
     return dataset
 

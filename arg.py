@@ -1,5 +1,11 @@
 import argparse
 
+def parse_args_ds(argp):
+    argp.add_argument('--n_img', type=int, default=-1,
+                      help="Limit to the number of image to load",
+                      dest='ds_n_img')
+    return argp
+
 
 def parse_args_dl(argp):
     argp.add_argument("--shuffle", action='store_true',
@@ -32,6 +38,21 @@ def parse_args_md(argp):
     return argp
 
 
+def parse_args_tf(argp):
+    argp.add_argument('--angle', type=int,
+                      help="Angle value for data augmentation",
+                      dest='tf_angle')
+    argp.add_argument('--no_angle', help='no angle', dest='tf_angle',
+                      action='store_const', const=None)
+    argp.set_defaults(tf_angle=180)
+    argp.add_argument('--flip', type=float,
+                      help="Flip probability value for data augmentation",
+                      dest='tf_flip')
+    argp.add_argument('--no_flip', help='no flip', dest='tf_flip',
+                      action='store_const', const=None)
+    return argp
+
+
 def choose_gpu(arg):
     if arg == 'cuda':
         return arg
@@ -50,6 +71,10 @@ def parse_args(name):
     argp.add_argument('--log', choices=range(2), type=int,
                       default=1,
                       help="Log level. Can be 0 (nothing) or 1-2")
+    argp.add_argument('--title', type=str, default="unet",
+                      help="Title of the file to save the model in")
+    argp = parse_args_ds(argp)
     argp = parse_args_dl(argp)
     argp = parse_args_md(argp)
+    argp = parse_args_tf(argp)
     return argp.parse_args()

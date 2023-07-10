@@ -14,6 +14,12 @@ BATCH_SIZE = 32
 DEVICE = "cuda"
 
 
+def load_model(title, model, device=DEVICE):
+    weight = torch.load(f'../models/{title}.pt', map_location=device)
+    model.load_state_dict(weight)
+    return model
+
+
 # save best model
 def save_best_model(model, loss, title='unet'):
     if len(loss) <= 2 or (len(loss) > 2 and loss[-1] < min(loss[:-1])):
@@ -87,6 +93,7 @@ def train_epochs(tr_dl, v_dl, model, loss_fn, optimizer, log=0, title='unet',
         save_best_model(model, loss_val_time, title=title)
         i += 1
     print('DONE!')
+    torch.save(model.state_dict(), f'./models/{title}_last.pt')
     return model, loss_train_time, loss_val_time
 
 
