@@ -58,33 +58,53 @@ def get_model(args, in_channels):
     return md
 
 
-def get_data_loader(args):
-    dataset = get_dataset(args)
-    idx = np.arange(len(dataset))
-    train_idx, test_idx = train_test_split(idx, shuffle=args.dl_split_shuffle,
-                                           test_size=args.dl_test_subset)
-    train_idx, val_idx = train_test_split(train_idx,
-                                          shuffle=args.dl_split_shuffle,
-                                          test_size=args.dl_val_subset)
+def get_idx_split_or_patient(arg, idx, patient, shuffle):
+    if type(arg) is str:
+        pass
+    else:
+        idx_one, idx_two = train_test_split(idx, shuffle=shuffle,
+                                               test_size=arg) 
+    return idx_one, idx_two
+
+
+def get_idx_test(args, n, patient):
+    idx = np.arange(n)
+    train_idx, test_idx = get_idx_split_or_patient(args.dl_val_subset, idx,
+                                                   patient, args.dl_split_shuffle)
+    train_idx, val_idx = get_idx_split_or_patient(args.dl_val_subset,
+                                                  train_idx, patient, args.dl_split_shuffle)
+    return train_idx, val_idx, test_idx
+
+
+def get_data_loader_test(dataset, args):
+    tr_idx, v_idx, ts_idx = get_idx_test(args, len(dataset), patient)
     train_sampler = SubsetRandomSampler(train_idx)
     val_sampler = SubsetRandomSampler(val_idx)
     test_sampler = SubsetRandomSampler(test_idx)
-    train_dataloader = DataLoader(
+    train_dl = DataLoader(
         dataset,
         batch_size=args.dl_batch_size,
         shuffle=args.dl_shuffle,
         sampler=train_sampler)
-    val_dataloader = DataLoader(
+    val_dl = DataLoader(
         dataset,
         batch_size=args.dl_batch_size,
         shuffle=args.dl_shuffle,
         sampler=val_sampler)
-    test_dataloader = DataLoader(
+    test_dl = DataLoader(
         dataset,
         batch_size=args.dl_batch_size,
         shuffle=args.dl_shuffle,
         sampler=test_sampler)
-    return train_dataloader, val_dataloader, test_dataloader
+    return train_dl, val_dl, test_dl
+
+
+def get_data_loader(args):
+    dataset = get_dataset(args)
+    if args.cross:
+        pass
+    else:
+        return get_data_loader_test(dataset, args)
 
 
 def get_dataset(args):
@@ -96,13 +116,14 @@ def get_dataset(args):
     dataset = FlimDataset(
         n_img=args.ds_n_img,
         seed=args.seed,
-        transforms=transforms
+        transforms=transforms,
     )
     return dataset
 
 
 if __name__ == '__main__':
     args = parse_args('FLIm dl')
+    args.cross = args.k_cross or args.p_cross
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     main(args)

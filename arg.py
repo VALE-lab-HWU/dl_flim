@@ -19,12 +19,21 @@ def parse_args_dl(argp):
     argp.add_argument('--batch_size', type=int, default=1,
                       help="The bath size to compute the loss on",
                       dest='dl_batch_size')
-    argp.add_argument('--test_subset', type=float, default=0.3,
+    argp.add_argument('--test_subset', type=float,
                       help="Percentage size for the training/testing split",
                       dest='dl_test_subset')
-    argp.add_argument('--val_subset', type=float, default=0.3,
+    argp.add_argument('--test_patient', type=string,
+                      help="Patient to use for testing",
+                      dest='dl_test_subset')
+    argp.set_defaults(dl_test_subset=0.3)
+    argp.add_argument('--val_subset', type=float,
                       help="Percentage size for the training/validation split",
                       dest='dl_val_subset')
+    argp.add_argument('--val_patient', type=string,
+                      help="Patient to use for validation",
+                      dest='dl_val_subset')
+    argp.set_defaults(dl_val_subset=0.3)
+
     return argp
 
 
@@ -64,6 +73,14 @@ def choose_gpu(arg):
 
 def parse_args(name):
     argp = argparse.ArgumentParser(name)
+    argp.add_argument("--k_cross", action='store_true',
+                      help="Flag to add K-foldcross validation")
+    argp.set_defaults(k_cross=False)
+    argp.add_argument("--P_cross", action='store_true',
+                      help="Flag to add cross validation per patient")
+    argp.set_defaults(P_cross=False)
+    argp.add_argument("--cross_nb", type=int, default=5,
+                      help="Integer representing how many fold for CV")
     argp.add_argument('--device', default='cuda', type=choose_gpu,
                       help="Which gpu to use. Default is all")
     argp.add_argument('--seed', type=int, default=42,
