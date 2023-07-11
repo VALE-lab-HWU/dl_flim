@@ -1,10 +1,12 @@
+import os
 import numpy as np
 import torch
+import time
 
 from torch.utils.data import DataLoader
 from torchvision.models import get_model as get_TF_model
 from torch.utils.data.sampler import SubsetRandomSampler
-from sklearn.model_selection import train_test_split, KFold
+from sklearn.model_selection import train_test_split, KFold, LeaveOneGroupOut
 from functools import partial
 
 from arg import parse_args
@@ -15,13 +17,31 @@ from transform import get_transforms
 import dl_helper
 
 
-def test_model(model, ts_dl, title):
+### rewrite !
+def test_model_fn(model, ts_dl, title, device):
     y_pred, y_true = dl_helper.test(ts_dl, model, device=device)
     y_pred = torch.argmax(y_pred, dim=1)
     compare_class(y_pred, y_true)
 
 
+def test_model(model, ts_dl, title, cross, device):
+    if args.cross:
+        pass
+    else:
+        test_model_fn(model, ts_dl, title, device)
+#### rewtie
+
+def init_folder(title):
+    title = title + int(time.time())
+    if title in os.listdir('./results'):
+        # if not enough then wtf
+        title += f'_{np.random.randint(42000)}'
+    os.makedirs(title)
+    return title
+
+
 def main(args):
+    args.title = init_folder(args.title)
     device = torch.device("cpu" if not torch.cuda.is_available()
                           else args.device)
     log(f'Device: {device}', args.log, 1)
@@ -29,24 +49,30 @@ def main(args):
     tr_dl, v_dl, ts_dl = get_data_loader(args)
     model = get_model(args, tr_dl.dataset.in_channels)
     model.to(device)
-    loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = get_optimizer(args, model)
-    model, l_tt, l_vt = dl_helper.train_epochs(
+    loss_fn = torch.nn.CrossEntropyLoss()
+    model, l_tt, l_vt = dl_helper.train(
+        args.cross,
         tr_dl, v_dl, model, loss_fn,
         optimizer, log=args.log,
         epochs=args.md_epochs, device=device)
+    # ### todo
     best_model = get_model(
         args, tr_dl.dataset.in_channels)
     best_model = dl_helper.load_model(args.title, best_model,
                                       device=device)
-    test_model(model, ts_dl, 'Last model')
-    test_model(best_model, ts_dl, 'Best model')    
+    # ### todo cross
+    test_model(model, ts_dl, 'Last model', args.cross,  device)
+    test_model(best_model, ts_dl, 'Best model', device)
     store_results(l_tt=l_tt, l_vt=l_vt, title=args.title+'_loss')
 
 
 def get_optimizer(args, model):
-    optimizer = torch.optim.Adam(model.parameters(),
-                                 lr=args.md_learning_rate)
+    if args.cross:
+        optimizer = partial(torch.optim.Adam, lr=args.md_learning_rate)
+    else:
+        optimizer = torch.optim.Adam(model.parameters(),
+                                     lr=args.md_learning_rate)
     return optimizer
 
 
@@ -55,12 +81,14 @@ def get_model(args, in_channels):
     md.conv1 = torch.nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2),
                                padding=(3, 3), bias=False)
     md.fc = torch.nn.Linear(in_features=2048, out_features=2, bias=True)
+    if args.cross:
+        torch.save(md.state_dict(), f'./results/{args.title}/weights.pt')
     return md
 
 
 def get_idx_split_or_patient(arg, idx, patient, shuffle):
     if type(arg) is str:
-        if arg  in patient:
+        if arg in patient:
             tmp = patient == arg
             idx_one = idx[(~tmp).nonzero()[0]]
             idx_two = idx[tmp.nonzero()[0]]
@@ -68,24 +96,27 @@ def get_idx_split_or_patient(arg, idx, patient, shuffle):
             raise Exception('Patient is not in list of patient')
     else:
         idx_one, idx_two = train_test_split(idx, shuffle=shuffle,
-                                               test_size=arg) 
+                                            test_size=arg)
     return idx_one, idx_two
 
 
 def get_idx_test(args, n, patient):
     idx = np.arange(n)
     train_idx, test_idx = get_idx_split_or_patient(args.dl_val_subset, idx,
-                                                   patient, args.dl_split_shuffle)
+                                                   patient,
+                                                   args.dl_split_shuffle)
     train_idx, val_idx = get_idx_split_or_patient(args.dl_val_subset,
-                                                  train_idx, patient[train_idx], args.dl_split_shuffle)
+                                                  train_idx,
+                                                  patient[train_idx],
+                                                  args.dl_split_shuffle)
     return train_idx, val_idx, test_idx
 
 
 def get_data_loader_test(dataset, args):
-    tr_idx, v_idx, ts_idx = get_idx_test(args, len(dataset), patient)
-    train_sampler = SubsetRandomSampler(train_idx)
-    val_sampler = SubsetRandomSampler(val_idx)
-    test_sampler = SubsetRandomSampler(test_idx)
+    tr_idx, v_idx, ts_idx = get_idx_test(args, len(dataset), dataset.patient)
+    train_sampler = SubsetRandomSampler(tr_idx)
+    val_sampler = SubsetRandomSampler(v_idx)
+    test_sampler = SubsetRandomSampler(ts_idx)
     train_dl = DataLoader(
         dataset,
         batch_size=args.dl_batch_size,
@@ -105,12 +136,22 @@ def get_data_loader_test(dataset, args):
 
 
 def get_k_fold_split(dataset, k, shuffle):
+    idx = np.arange(len(dataset))
     kf = KFold(n_splits=k, shuffle=shuffle)
-    return {i: v for i, v in enumerate(kf.split(np.arange(len(dataset))))}
+    tmp = np.array([[{i: v1}, {i: v2}]
+                    for i, (v1, v2) in enumerate(kf.split(idx))])
+    return tmp[:, 0], tmp[:, 1]
 
 
 def get_split_per_patients(dataset):
-    return {i: (dataset.patient==i).nonzero()[0] for i in np.unique(dataset.patient)}
+    idx = np.arange(len(dataset))
+    groups = dataset.patient
+    group = np.unique(dataset.patient)
+    lg = LeaveOneGroupOut()
+    tmp = np.array([[{group[i]: v1}, {group[i]: v2}]
+                    for i, (v1, v2) in enumerate(lg.split(idx,
+                                                          groups=groups))])
+    return tmp[:, 0], tmp[:, 1]
 
 
 def get_data_loaders_cross(args, dataset):
@@ -119,7 +160,8 @@ def get_data_loaders_cross(args, dataset):
     elif args.p_cross:
         return get_split_per_patients(dataset)
     else:
-        raise Exception("Something unexpected happen. Cross-validation argument are wrong.")
+        raise Exception("Something unexpected happen. Cross-validation"
+                        + "argument are wrong.")
 
 
 def get_data_loader(args):

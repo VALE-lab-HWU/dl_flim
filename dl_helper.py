@@ -14,17 +14,17 @@ BATCH_SIZE = 32
 DEVICE = "cuda"
 
 
-def load_model(title, model, device=DEVICE):
-    weight = torch.load(f'../models/{title}.pt', map_location=device)
+def load_model(title, model, name='model', device=DEVICE):
+    weight = torch.load(f'./results/{title}/{name}.pt', map_location=device)
     model.load_state_dict(weight)
     return model
 
 
 # save best model
-def save_best_model(model, loss, title='unet'):
+def save_best_model(model, loss, title='flim'):
     if len(loss) <= 2 or (len(loss) > 2 and loss[-1] < min(loss[:-1])):
         print('saving model')
-        torch.save(model.state_dict(), f'./models/{title}.pt')
+        torch.save(model.state_dict(), f'./results/{title}/model.pt')
 
 
 def validate(dataloader, model, loss_fn, log=0, device=DEVICE):
@@ -72,7 +72,7 @@ def train_batches(dataloader, model, loss_fn, optimizer,
 
 
 # run through epoch
-def train_epochs(tr_dl, v_dl, model, loss_fn, optimizer, log=0, title='unet',
+def train_epochs(tr_dl, v_dl, model, loss_fn, optimizer, log=0, title='flim',
                  epochs=EPOCHS, device=DEVICE):
     loss_val = validate(v_dl, model, loss_fn, log=log,
                         device=device)
@@ -95,6 +95,30 @@ def train_epochs(tr_dl, v_dl, model, loss_fn, optimizer, log=0, title='unet',
     print('DONE!')
     torch.save(model.state_dict(), f'./models/{title}_last.pt')
     return model, loss_train_time, loss_val_time
+
+
+def train_cross(tr_dls, v_dls, model, loss_fn, optimizer_fn, log=0,
+                title='flim', epochs=EPOCHS, device=DEVICE):
+    models = []
+    loss_train_time_n = []
+    loss_val_time_n = []
+    for k in tr_dls:
+        model = load_model(title, model, name='weights')
+        optimizer = optimizer_fn(model)
+        m, ltt, lvt = train_epochs(tr_dls[k], v_dls[k], model, loss_fn,
+                                   optimizer, log, f'{title}/{k}', epochs,
+                                   device)
+        models.append(m)
+        loss_train_time_n.append(ltt)
+        loss_val_time_n.append(lvt)
+    return models, loss_train_time_n, loss_val_time_n
+
+
+def train(cross, *args, **kwargs):
+    if cross:
+        return train_cross(*args, **kwargs)
+    else:
+        return train_epochs(*args, **kwargs)
 
 
 # run the testing step
