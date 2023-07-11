@@ -60,7 +60,12 @@ def get_model(args, in_channels):
 
 def get_idx_split_or_patient(arg, idx, patient, shuffle):
     if type(arg) is str:
-        pass
+        if arg  in patient:
+            tmp = patient == arg
+            idx_one = idx[(~tmp).nonzero()[0]]
+            idx_two = idx[tmp.nonzero()[0]]
+        else:
+            raise Exception('Patient is not in list of patient')
     else:
         idx_one, idx_two = train_test_split(idx, shuffle=shuffle,
                                                test_size=arg) 
@@ -72,7 +77,7 @@ def get_idx_test(args, n, patient):
     train_idx, test_idx = get_idx_split_or_patient(args.dl_val_subset, idx,
                                                    patient, args.dl_split_shuffle)
     train_idx, val_idx = get_idx_split_or_patient(args.dl_val_subset,
-                                                  train_idx, patient, args.dl_split_shuffle)
+                                                  train_idx, patient[train_idx], args.dl_split_shuffle)
     return train_idx, val_idx, test_idx
 
 
