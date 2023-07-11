@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision.models import get_model as get_TF_model
 from torch.utils.data.sampler import SubsetRandomSampler
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 from functools import partial
 
 from arg import parse_args
@@ -104,10 +104,28 @@ def get_data_loader_test(dataset, args):
     return train_dl, val_dl, test_dl
 
 
+def get_k_fold_split(dataset, k, shuffle):
+    kf = KFold(n_splits=k, shuffle=shuffle)
+    return {i: v for i, v in enumerate(kf.split(np.arange(len(dataset))))}
+
+
+def get_split_per_patients(dataset):
+    return {i: (dataset.patient==i).nonzero()[0] for i in np.unique(dataset.patient)}
+
+
+def get_data_loaders_cross(args, dataset):
+    if args.k_cross:
+        return get_k_fold_split(dataset, args.cross_nb, args.dl_split_shuffle)
+    elif args.p_cross:
+        return get_split_per_patients(dataset)
+    else:
+        raise Exception("Something unexpected happen. Cross-validation argument are wrong.")
+
+
 def get_data_loader(args):
     dataset = get_dataset(args)
     if args.cross:
-        pass
+        return get_data_loaders_cross(dataset, args)
     else:
         return get_data_loader_test(dataset, args)
 

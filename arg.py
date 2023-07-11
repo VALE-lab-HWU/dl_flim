@@ -76,7 +76,7 @@ def parse_args(name):
     argp.add_argument("--k_cross", action='store_true',
                       help="Flag to add K-foldcross validation")
     argp.set_defaults(k_cross=False)
-    argp.add_argument("--P_cross", action='store_true',
+    argp.add_argument("--p_cross", action='store_true',
                       help="Flag to add cross validation per patient")
     argp.set_defaults(P_cross=False)
     argp.add_argument("--cross_nb", type=int, default=5,
