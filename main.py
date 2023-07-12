@@ -26,14 +26,15 @@ def test_model_fn(model, ts_dl, title, device):
 
 def test_model(model, ts_dl, title, cross, device):
     if args.cross:
-        for i, k in enumerate(ts_dl):
-            test_model_fn(model[i], ts_dl[k], title+'/'+k, device)
+        for k in model:
+            test_model_fn(model[k], ts_dl, f'{title}/{k}', device)
     else:
         test_model_fn(model, ts_dl, title, device)
 
 
-def init_folder(title):
-    title = title + '_' + str(int(time.time()))
+def init_folder(title, add_time=True):
+    if add_time:
+        title = title + '_' + str(int(time.time()))
     if title in os.listdir('./results'):
         # if not enough then wtf
         title += f'_{np.random.randint(42000)}'
@@ -48,7 +49,10 @@ def main(args):
     log(f'Device: {device}', args.log, 1)
     log('Create dataset, dataloader, model', args.log, 1)
     tr_dl, v_dl, ts_dl = get_data_loader(args)
-    model = get_model(args, tr_dl.dataset.in_channels)
+    if args.cross:
+        for i in tr_dl:
+            init_folder(f'{args.title}/{i}', add_time=False)
+    model = get_model(args, ts_dl.dataset.in_channels)
     model.to(device)
     optimizer = get_optimizer(args, model)
     loss_fn = torch.nn.CrossEntropyLoss()
@@ -74,11 +78,11 @@ def get_optimizer(args, model):
 
 def get_best_model(tr_dl, args, device):
     if args.cross:
-        res = []
+        res = {}
         for k in tr_dl.keys():
-            model = get_model(args, tr_dl.dataset.in_channels)
-            res.append(dl_helper.load_model(args.title+'/'+k, model,
-                                            device=device))
+            model = get_model(args, tr_dl[k].dataset.in_channels)
+            res[k] = dl_helper.load_model(f'{args.title}/{k}', model,
+                                          device=device)
         return res
     else:
         model = get_model(args, tr_dl.dataset.in_channels)
@@ -121,41 +125,37 @@ def get_idx_test(args, n, patient):
     return train_idx, val_idx, test_idx
 
 
+def create_sampler(idx):
+    return SubsetRandomSampler(idx)
+
+
+def create_dl(dataset, args, idx):
+    sampler = create_sampler(idx)
+    dl = DataLoader(
+        dataset,
+        batch_size=args.dl_batch_size,
+        shuffle=args.dl_shuffle,
+        sampler=sampler)
+    return dl
+
+
 def get_data_loader_test(dataset, args):
     tr_idx, v_idx, ts_idx = get_idx_test(args, len(dataset), dataset.patient)
-    train_sampler = SubsetRandomSampler(tr_idx)
-    val_sampler = SubsetRandomSampler(v_idx)
-    test_sampler = SubsetRandomSampler(ts_idx)
-    train_dl = DataLoader(
-        dataset,
-        batch_size=args.dl_batch_size,
-        shuffle=args.dl_shuffle,
-        sampler=train_sampler)
-    val_dl = DataLoader(
-        dataset,
-        batch_size=args.dl_batch_size,
-        shuffle=args.dl_shuffle,
-        sampler=val_sampler)
-    test_dl = DataLoader(
-        dataset,
-        batch_size=args.dl_batch_size,
-        shuffle=args.dl_shuffle,
-        sampler=test_sampler)
+    train_dl = create_dl(dataset, args, tr_idx)
+    val_dl = create_dl(dataset, args, v_idx)
+    test_dl = create_dl(dataset, args, ts_idx)
     return train_dl, val_dl, test_dl
 
 
-def get_k_fold_split(dataset, k, shuffle):
-    idx = np.arange(len(dataset))
+def get_k_fold_split(idx, k, shuffle):
     kf = KFold(n_splits=k, shuffle=shuffle)
-    tmp = np.array([[{i: v1}, {i: v2}]
-                    for i, (v1, v2) in enumerate(kf.split(idx))])
-    return tmp[:, 0], tmp[:, 1]
+    tmp = [[(i, v1), (i, v2)]
+           for i, (v1, v2) in enumerate(kf.split(idx))]
+    return {i[0][0]: i[0][1] for i in tmp}, {i[1][0]: i[1][1] for i in tmp}
 
 
-def get_split_per_patients(dataset):
-    idx = np.arange(len(dataset))
-    groups = dataset.patient
-    group = np.unique(dataset.patient)
+def get_split_per_patients(idx, groups):
+    group = np.unique(groups)
     lg = LeaveOneGroupOut()
     tmp = np.array([[{group[i]: v1}, {group[i]: v2}]
                     for i, (v1, v2) in enumerate(lg.split(idx,
@@ -163,14 +163,30 @@ def get_split_per_patients(dataset):
     return tmp[:, 0], tmp[:, 1]
 
 
-def get_data_loaders_cross(args, dataset):
+def get_data_loaders_cross_idx(dataset, args):
+    idx = np.arange(len(dataset))
+    train_idx, test_idx = get_idx_split_or_patient(args.dl_test_subset, idx,
+                                                   dataset.patient,
+                                                   args.dl_split_shuffle)
     if args.k_cross:
-        return get_k_fold_split(dataset, args.cross_nb, args.dl_split_shuffle)
+        train_idx, val_idx = get_k_fold_split(train_idx, args.cross_nb,
+                                              args.dl_split_shuffle)
+        return train_idx, val_idx, test_idx
     elif args.p_cross:
-        return get_split_per_patients(dataset)
+        train_idx, val_idx = get_split_per_patients(train_idx,
+                                                    dataset.patient[train_idx])
+        return train_idx, val_idx, test_idx
     else:
         raise Exception("Something unexpected happen. Cross-validation"
                         + "argument are wrong.")
+
+
+def get_data_loaders_cross(dataset, args):
+    trs_idx, vs_idx, ts_idx = get_data_loaders_cross_idx(dataset, args)
+    ts_dl = create_dl(dataset, args, ts_idx)
+    trs_dl = {k: create_dl(dataset, args, trs_idx[k]) for k in trs_idx}
+    vs_dl = {k: create_dl(dataset, args, vs_idx[k]) for k in vs_idx}
+    return trs_dl, vs_dl, ts_dl
 
 
 def get_data_loader(args):

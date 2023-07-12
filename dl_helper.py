@@ -104,7 +104,7 @@ def train_cross(tr_dls, v_dls, model, loss_fn, optimizer_fn, log=0,
     loss_val_time_n = {}
     for k in tr_dls:
         model = load_model(title, model, name='weights')
-        optimizer = optimizer_fn(model)
+        optimizer = optimizer_fn(model.parameters())
         m, ltt, lvt = train_epochs(tr_dls[k], v_dls[k], model, loss_fn,
                                    optimizer, log, f'{title}/{k}', epochs,
                                    device)
