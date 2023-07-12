@@ -102,7 +102,7 @@ def get_idx_split_or_patient(arg, idx, patient, shuffle):
             idx_one = idx[(~tmp).nonzero()[0]]
             idx_two = idx[tmp.nonzero()[0]]
         else:
-            raise Exception('Patient is not in list of patient')
+            raise Exception(f'Patient {arg} is not in list of patient')
     else:
         idx_one, idx_two = train_test_split(idx, shuffle=shuffle,
                                             test_size=arg)
@@ -111,7 +111,7 @@ def get_idx_split_or_patient(arg, idx, patient, shuffle):
 
 def get_idx_test(args, n, patient):
     idx = np.arange(n)
-    train_idx, test_idx = get_idx_split_or_patient(args.dl_val_subset, idx,
+    train_idx, test_idx = get_idx_split_or_patient(args.dl_test_subset, idx,
                                                    patient,
                                                    args.dl_split_shuffle)
     train_idx, val_idx = get_idx_split_or_patient(args.dl_val_subset,
