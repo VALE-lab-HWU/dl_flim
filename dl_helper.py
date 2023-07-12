@@ -99,18 +99,18 @@ def train_epochs(tr_dl, v_dl, model, loss_fn, optimizer, log=0, title='flim',
 
 def train_cross(tr_dls, v_dls, model, loss_fn, optimizer_fn, log=0,
                 title='flim', epochs=EPOCHS, device=DEVICE):
-    models = []
-    loss_train_time_n = []
-    loss_val_time_n = []
+    models = {}
+    loss_train_time_n = {}
+    loss_val_time_n = {}
     for k in tr_dls:
         model = load_model(title, model, name='weights')
         optimizer = optimizer_fn(model)
         m, ltt, lvt = train_epochs(tr_dls[k], v_dls[k], model, loss_fn,
                                    optimizer, log, f'{title}/{k}', epochs,
                                    device)
-        models.append(m)
-        loss_train_time_n.append(ltt)
-        loss_val_time_n.append(lvt)
+        models[k] = m
+        loss_train_time_n[k] = ltt
+        loss_val_time_n[k] = lvt
     return models, loss_train_time_n, loss_val_time_n
 
 

@@ -17,8 +17,8 @@ from transform import get_transforms
 import dl_helper
 
 
-### rewrite !
 def test_model_fn(model, ts_dl, title, device):
+    print(f'Testing {title}')
     y_pred, y_true = dl_helper.test(ts_dl, model, device=device)
     y_pred = torch.argmax(y_pred, dim=1)
     compare_class(y_pred, y_true)
@@ -26,10 +26,11 @@ def test_model_fn(model, ts_dl, title, device):
 
 def test_model(model, ts_dl, title, cross, device):
     if args.cross:
-        pass
+        for i, k in enumerate(ts_dl):
+            test_model_fn(model[i], ts_dl[k], title+'/'+k, device)
     else:
         test_model_fn(model, ts_dl, title, device)
-#### rewtie
+
 
 def init_folder(title):
     title = title + int(time.time())
@@ -56,14 +57,9 @@ def main(args):
         tr_dl, v_dl, model, loss_fn,
         optimizer, log=args.log,
         epochs=args.md_epochs, device=device)
-    # ### todo
-    best_model = get_model(
-        args, tr_dl.dataset.in_channels)
-    best_model = dl_helper.load_model(args.title, best_model,
-                                      device=device)
-    # ### todo cross
+    best_model = get_best_model(tr_dl, args, device)
     test_model(model, ts_dl, 'Last model', args.cross,  device)
-    test_model(best_model, ts_dl, 'Best model', device)
+    test_model(best_model, ts_dl, 'Best model', args.cross, device)
     store_results(l_tt=l_tt, l_vt=l_vt, title=args.title+'_loss')
 
 
@@ -74,6 +70,19 @@ def get_optimizer(args, model):
         optimizer = torch.optim.Adam(model.parameters(),
                                      lr=args.md_learning_rate)
     return optimizer
+
+
+def get_best_model(tr_dl, args, device):
+    if args.cross:
+        res = []
+        for k in tr_dl.keys():
+            model = get_model(args, tr_dl.dataset.in_channels)
+            res.append(dl_helper.load_model(args.title+'/'+k, model,
+                                            device=device))
+        return res
+    else:
+        model = get_model(args, tr_dl.dataset.in_channels)
+        return dl_helper.load_model(args.title, model, device=device)
 
 
 def get_model(args, in_channels):
