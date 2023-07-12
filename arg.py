@@ -22,14 +22,14 @@ def parse_args_dl(argp):
     argp.add_argument('--test_subset', type=float,
                       help="Percentage size for the training/testing split",
                       dest='dl_test_subset')
-    argp.add_argument('--test_patient', type=string,
+    argp.add_argument('--test_patient', type=str,
                       help="Patient to use for testing",
                       dest='dl_test_subset')
     argp.set_defaults(dl_test_subset=0.3)
     argp.add_argument('--val_subset', type=float,
                       help="Percentage size for the training/validation split",
                       dest='dl_val_subset')
-    argp.add_argument('--val_patient', type=string,
+    argp.add_argument('--val_patient', type=str,
                       help="Patient to use for validation",
                       dest='dl_val_subset')
     argp.set_defaults(dl_val_subset=0.3)
@@ -78,7 +78,7 @@ def parse_args(name):
     argp.set_defaults(k_cross=False)
     argp.add_argument("--p_cross", action='store_true',
                       help="Flag to add cross validation per patient")
-    argp.set_defaults(P_cross=False)
+    argp.set_defaults(p_cross=False)
     argp.add_argument("--cross_nb", type=int, default=5,
                       help="Integer representing how many fold for CV")
     argp.add_argument('--device', default='cuda', type=choose_gpu,
@@ -88,7 +88,7 @@ def parse_args(name):
     argp.add_argument('--log', choices=range(2), type=int,
                       default=1,
                       help="Log level. Can be 0 (nothing) or 1-2")
-    argp.add_argument('--title', type=str, default="unet",
+    argp.add_argument('--title', type=str, default="flim_cnn",
                       help="Title of the file to save the model in")
     argp = parse_args_ds(argp)
     argp = parse_args_dl(argp)

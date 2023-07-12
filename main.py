@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split, KFold, LeaveOneGroupOut
 from functools import partial
 
 from arg import parse_args
-from dataset import FlimDataset
+from dataset import FLImDataset
 from utils import log, store_results
 from ml_helper import compare_class
 from transform import get_transforms
@@ -21,7 +21,7 @@ def test_model_fn(model, ts_dl, title, device):
     print(f'Testing {title}')
     y_pred, y_true = dl_helper.test(ts_dl, model, device=device)
     y_pred = torch.argmax(y_pred, dim=1)
-    compare_class(y_pred, y_true)
+    compare_class(y_pred, y_true, unique_l=[1, 0])
 
 
 def test_model(model, ts_dl, title, cross, device):
@@ -33,11 +33,11 @@ def test_model(model, ts_dl, title, cross, device):
 
 
 def init_folder(title):
-    title = title + int(time.time())
+    title = title + '_' + str(int(time.time()))
     if title in os.listdir('./results'):
         # if not enough then wtf
         title += f'_{np.random.randint(42000)}'
-    os.makedirs(title)
+    os.makedirs('./results/'+title)
     return title
 
 
@@ -55,12 +55,12 @@ def main(args):
     model, l_tt, l_vt = dl_helper.train(
         args.cross,
         tr_dl, v_dl, model, loss_fn,
-        optimizer, log=args.log,
+        optimizer, title=args.title, log=args.log,
         epochs=args.md_epochs, device=device)
     best_model = get_best_model(tr_dl, args, device)
     test_model(model, ts_dl, 'Last model', args.cross,  device)
     test_model(best_model, ts_dl, 'Best model', args.cross, device)
-    store_results(l_tt=l_tt, l_vt=l_vt, title=args.title+'_loss')
+    store_results(l_tt=l_tt, l_vt=l_vt, title=args.title, name='loss')
 
 
 def get_optimizer(args, model):
@@ -182,12 +182,11 @@ def get_data_loader(args):
 
 
 def get_dataset(args):
-    transforms = partial(
-        get_transforms,
+    transforms = get_transforms(
         angle=args.tf_angle,
         flip_prob=args.tf_flip,
     )
-    dataset = FlimDataset(
+    dataset = FLImDataset(
         n_img=args.ds_n_img,
         seed=args.seed,
         transforms=transforms,

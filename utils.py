@@ -23,5 +23,5 @@ def n_t(tens, b=False):
         return tens.permute(*arange[2:], *arange[:2])
 
 
-def store_results(title='flim', **res):
-    pd.to_pickle(res, f'./results/result_{title}.pkl')
+def store_results(title='flim', name='result', **res):
+    pd.to_pickle(res, f'./results/{title}/{name}.pkl')

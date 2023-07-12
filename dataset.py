@@ -6,7 +6,7 @@ from data_helper import get_data_complete
 from utils import n_t
 
 
-class FlimDataset(Dataset):
+class FLImDataset(Dataset):
 
     FILENAME = 'all_patient.pickle'
 
@@ -176,7 +176,7 @@ class FlimDataset(Dataset):
         b = b[idx]
 
         if self.transforms is not None and self.state == 'train':
-            x, y = self.transforms((x, y))
+            x, = self.transforms((x,))
 
         return x, y, p, b
 

@@ -93,7 +93,7 @@ def train_epochs(tr_dl, v_dl, model, loss_fn, optimizer, log=0, title='flim',
         save_best_model(model, loss_val_time, title=title)
         i += 1
     print('DONE!')
-    torch.save(model.state_dict(), f'./models/{title}_last.pt')
+    torch.save(model.state_dict(), f'./results/{title}/model_last.pt')
     return model, loss_train_time, loss_val_time
 
 
