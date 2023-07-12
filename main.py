@@ -157,10 +157,9 @@ def get_k_fold_split(idx, k, shuffle):
 def get_split_per_patients(idx, groups):
     group = np.unique(groups)
     lg = LeaveOneGroupOut()
-    tmp = np.array([[{group[i]: v1}, {group[i]: v2}]
-                    for i, (v1, v2) in enumerate(lg.split(idx,
-                                                          groups=groups))])
-    return tmp[:, 0], tmp[:, 1]
+    tmp = [[(group[i], v1), (group[i], v2)]
+           for i, (v1, v2) in enumerate(lg.split(idx, groups=groups))]
+    return {i[0][0]: i[0][1] for i in tmp}, {i[1][0]: i[1][1] for i in tmp}
 
 
 def get_data_loaders_cross_idx(dataset, args):
