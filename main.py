@@ -22,6 +22,7 @@ def test_model_fn(model, ts_dl, title, device):
     y_pred, y_true = dl_helper.test(ts_dl, model, device=device)
     y_pred = torch.argmax(y_pred, dim=1)
     compare_class(y_pred, y_true, unique_l=[1, 0])
+    store_results(y_pred=y_pred, y_true=y_true, title=title, name='res')
 
 
 def test_model(model, ts_dl, title, cross, device):
