@@ -17,20 +17,20 @@ from transform import get_transforms
 import dl_helper
 
 
-def test_model_fn(model, ts_dl, title, device):
-    print(f'Testing {title}')
+def test_model_fn(model, ts_dl, title, name,  device):
+    print(f'Testing {title} {name}')
     y_pred, y_true = dl_helper.test(ts_dl, model, device=device)
     y_pred = torch.argmax(y_pred, dim=1)
     compare_class(y_pred, y_true, unique_l=[1, 0])
-    store_results(y_pred=y_pred, y_true=y_true, title=title, name='res')
+    store_results(y_pred=y_pred, y_true=y_true, title=title, name=name)
 
 
-def test_model(model, ts_dl, title, cross, device):
+def test_model(model, ts_dl, title, name, cross, device):
     if args.cross:
         for k in model:
-            test_model_fn(model[k], ts_dl, f'{title}/{k}', device)
+            test_model_fn(model[k], ts_dl, f'{title}_{k}', device)
     else:
-        test_model_fn(model, ts_dl, title, device)
+        test_model_fn(model, ts_dl, title, name,  device)
 
 
 def init_folder(title, add_time=True):
@@ -63,8 +63,8 @@ def main(args):
         optimizer, title=args.title, log=args.log,
         epochs=args.md_epochs, device=device)
     best_model = get_best_model(tr_dl, args, device)
-    test_model(model, ts_dl, 'Last model', args.cross,  device)
-    test_model(best_model, ts_dl, 'Best model', args.cross, device)
+    test_model(model, ts_dl, args.title,  'Last_model', args.cross,  device)
+    test_model(best_model, ts_dl, args.title, 'Best_model', args.cross, device)
     store_results(l_tt=l_tt, l_vt=l_vt, title=args.title, name='loss')
 
 
