@@ -28,7 +28,7 @@ def test_model_fn(model, ts_dl, title, name,  device):
 def test_model(model, ts_dl, title, name, cross, device):
     if args.cross:
         for k in model:
-            test_model_fn(model[k], ts_dl, f'{title}_{k}', device)
+            test_model_fn(model[k], ts_dl, f'{title}/{k}', name, device)
     else:
         test_model_fn(model, ts_dl, title, name,  device)
 
