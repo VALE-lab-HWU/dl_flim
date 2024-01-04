@@ -1,5 +1,6 @@
 import argparse
 
+
 def parse_args_ds(argp):
     argp.add_argument('--n_img', type=int, default=-1,
                       help="Limit to the number of image to load",
@@ -33,6 +34,10 @@ def parse_args_dl(argp):
                       help="Patient to use for validation",
                       dest='dl_val_subset')
     argp.set_defaults(dl_val_subset=0.3)
+    argp.add_argument("--fixed_test_set", action='store_true',
+                      help="Whether to fix the test set for CV",
+                      dest='dl_fixed_test_set')
+    argp.set_defaults(dl_fixed_test_set=True)
 
     return argp
 

@@ -1,8 +1,12 @@
+import os
+import sys
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 
 from data_helper import get_data_complete
+
+sys.path.append(os.path.dirname(os.path.abspath('.'))+'/dl_helper')
 from utils import n_t
 
 
@@ -33,7 +37,7 @@ class FLImDataset(Dataset):
         self.to_tensor()
 
         self.idx = np.arange(len(self.data))
-        self.in_channels = self.data.shape[-1]
+        self.in_channels = self.data.shape[-1] # wrong
 
         self.state = 'train'
 
@@ -155,7 +159,7 @@ class FLImDataset(Dataset):
             self.label = self.label[:n_img]
             self.band = self.band[:n_img]
             self.patient = self.patient[:n_img]
-        
+
     def to_tensor(self):
         self.data = torch.from_numpy(self.data).float()
         self.label = torch.from_numpy(self.label)

@@ -1,4 +1,5 @@
 import os
+import sys
 import numpy as np
 import torch
 import time
@@ -11,22 +12,25 @@ from functools import partial
 
 from arg import parse_args
 from dataset import FLImDataset
+import dl_helper
+
+sys.path.append(os.path.dirname(os.path.abspath('.'))+'/dl_helper')
 from utils import log, store_results
 from ml_helper import compare_class
 from transform import get_transforms
-import dl_helper
 
 
 def test_model_fn(model, ts_dl, title, name,  device):
     print(f'Testing {title} {name}')
     y_pred, y_true = dl_helper.test(ts_dl, model, device=device)
-    y_pred = torch.argmax(y_pred, dim=1)
+    y_pred = torch.argmax(y_pred, dim=1).contiguous().view(-1).cpu()
+    y_true = y_true.contiguous().view(-1).cpu()
     compare_class(y_pred, y_true, unique_l=[1, 0])
     store_results(y_pred=y_pred, y_true=y_true, title=title, name=name)
 
 
 def test_model(model, ts_dl, title, name, cross, device):
-    if args.cross:
+    if cross:
         for k in model:
             test_model_fn(model[k], ts_dl, f'{title}/{k}', name, device)
     else:
@@ -34,8 +38,8 @@ def test_model(model, ts_dl, title, name, cross, device):
 
 
 def init_folder(title, add_time=True):
-    if add_time:
-        title = title + '_' + str(int(time.time()))
+    # if add_time:
+    #     title = title + '_' + str(int(time.time()))
     if title in os.listdir('./results'):
         # if not enough then wtf
         title += f'_{np.random.randint(42000)}'
@@ -94,7 +98,9 @@ def get_model(args, in_channels):
     md = get_TF_model('ResNet50')
     md.conv1 = torch.nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2),
                                padding=(3, 3), bias=False)
-    md.fc = torch.nn.Linear(in_features=2048, out_features=2, bias=True)
+    md.fc = torch.nn.Sequential(
+        torch.nn.Linear(in_features=2048, out_features=2, bias=True),
+        torch.nn.Softmax(dim=1))
     if args.cross:
         torch.save(md.state_dict(), f'./results/{args.title}/weights.pt')
     return md
@@ -108,9 +114,11 @@ def get_idx_split_or_patient(arg, idx, patient, shuffle):
             idx_two = idx[tmp.nonzero()[0]]
         else:
             raise Exception(f'Patient {arg} is not in list of patient')
-    else:
+    elif arg != 0:
         idx_one, idx_two = train_test_split(idx, shuffle=shuffle,
                                             test_size=arg)
+    else:
+        return idx, None
     return idx_one, idx_two
 
 
@@ -150,7 +158,7 @@ def get_data_loader_test(dataset, args):
 
 def get_k_fold_split(idx, k, shuffle):
     kf = KFold(n_splits=k, shuffle=shuffle)
-    tmp = [[(i, v1), (i, v2)]
+    tmp = [[(i, idx[v1]), (i, idx[v2])]
            for i, (v1, v2) in enumerate(kf.split(idx))]
     return {i[0][0]: i[0][1] for i in tmp}, {i[1][0]: i[1][1] for i in tmp}
 
@@ -158,16 +166,15 @@ def get_k_fold_split(idx, k, shuffle):
 def get_split_per_patients(idx, groups):
     group = np.unique(groups)
     lg = LeaveOneGroupOut()
-    tmp = [[(group[i], v1), (group[i], v2)]
+    tmp = [[(group[i], idx[v1]), (group[i], idx[v2])]
            for i, (v1, v2) in enumerate(lg.split(idx, groups=groups))]
     return {i[0][0]: i[0][1] for i in tmp}, {i[1][0]: i[1][1] for i in tmp}
 
 
 def get_data_loaders_cross_idx(dataset, args):
     idx = np.arange(len(dataset))
-    train_idx, test_idx = get_idx_split_or_patient(args.dl_test_subset, idx,
-                                                   dataset.patient,
-                                                   args.dl_split_shuffle)
+    train_idx, test_idx = get_idx_split_or_patient(
+        args.dl_test_subset, idx, dataset.patient, args.dl_split_shuffle)
     if args.k_cross:
         train_idx, val_idx = get_k_fold_split(train_idx, args.cross_nb,
                                               args.dl_split_shuffle)
@@ -215,4 +222,4 @@ if __name__ == '__main__':
     args.cross = args.k_cross or args.p_cross
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
-    main(args)
+    # main(args)
