@@ -37,7 +37,7 @@ class FLImDataset(Dataset):
         self.to_tensor()
 
         self.idx = np.arange(len(self.data))
-        self.in_channels = self.data.shape[-1] # wrong
+        self.in_channels = self.data.shape[1]
 
         self.state = 'train'
 

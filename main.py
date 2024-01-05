@@ -15,9 +15,14 @@ from dataset import FLImDataset
 import dl_helper
 
 sys.path.append(os.path.dirname(os.path.abspath('.'))+'/dl_helper')
-from utils import log, store_results
+from utils import log, store_results, mkdir
 from ml_helper import compare_class
 from transform import get_transforms
+from models.paper.resnet import get_resnet_50_flim
+from models.paper.convnext import get_convnext_flim
+
+
+MD_DICT = {'resnet': get_resnet_50_flim, 'convnext': get_convnext_flim}
 
 
 def test_model_fn(model, ts_dl, title, name,  device):
@@ -38,12 +43,14 @@ def test_model(model, ts_dl, title, name, cross, device):
 
 
 def init_folder(title, add_time=True):
-    # if add_time:
-    #     title = title + '_' + str(int(time.time()))
+    mkdir('./results')
+    if add_time:
+        title = title + '_' + str(int(time.time()))
     if title in os.listdir('./results'):
         # if not enough then wtf
-        title += f'_{np.random.randint(42000)}'
-    os.makedirs('./results/'+title)
+        gen = np.random.default_rng()
+        title += f'_{gen.integers(42000)}'
+    mkdir('./results/'+title)
     return title
 
 
@@ -95,12 +102,9 @@ def get_best_model(tr_dl, args, device):
 
 
 def get_model(args, in_channels):
-    md = get_TF_model('ResNet50')
-    md.conv1 = torch.nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2),
-                               padding=(3, 3), bias=False)
-    md.fc = torch.nn.Sequential(
-        torch.nn.Linear(in_features=2048, out_features=2, bias=True),
-        torch.nn.Softmax(dim=1))
+    md = MD_DICT[args.md_model](in_channels=in_channels,
+                                out_channels=args.out_channels,
+                                pretrained=args.md_pretrained)
     if args.cross:
         torch.save(md.state_dict(), f'./results/{args.title}/weights.pt')
     return md
@@ -222,4 +226,4 @@ if __name__ == '__main__':
     args.cross = args.k_cross or args.p_cross
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
-    # main(args)
+    main(args)

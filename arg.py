@@ -49,6 +49,13 @@ def parse_args_md(argp):
     argp.add_argument('--learning_rate', type=float, default=1e-4,
                       help="The learning rate to which train the model",
                       dest='md_learning_rate')
+    argp.add_argument('--model', type=str, default='resnet',
+                      help="The model to use for classification",
+                      dest='md_model')
+    argp.add_argument('--pretrained', action='store_true',
+                      help="Whether to choose pretrained weights.",
+                      dest='md_pretrained')
+    argp.set_defaults(md_pretrained=False)
     return argp
 
 
@@ -78,6 +85,9 @@ def choose_gpu(arg):
 
 def parse_args(name):
     argp = argparse.ArgumentParser(name)
+    argp.add_argument('--out', type=int, default=2,
+                      help="How much class",
+                      dest="out_channels")
     argp.add_argument("--k_cross", action='store_true',
                       help="Flag to add K-foldcross validation")
     argp.set_defaults(k_cross=False)
