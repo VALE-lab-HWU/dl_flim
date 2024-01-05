@@ -25,21 +25,26 @@ from models.paper.convnext import get_convnext_flim
 MD_DICT = {'resnet': get_resnet_50_flim, 'convnext': get_convnext_flim}
 
 
-def test_model_fn(model, ts_dl, title, name,  device):
+def test_model_fn(model, ts_dl, title, name, args, device):
     print(f'Testing {title} {name}')
     y_pred, y_true = dl_helper.test(ts_dl, model, device=device)
     y_pred = torch.argmax(y_pred, dim=1).contiguous().view(-1).cpu()
     y_true = y_true.contiguous().view(-1).cpu()
     compare_class(y_pred, y_true, unique_l=[1, 0])
-    store_results(y_pred=y_pred, y_true=y_true, title=title, name=name)
+    with open(f'./results/{title}/{name}.txt', 'a') as f:
+        # should not be 0,1 hard coded, but oh well
+        compare_class(y_pred, y_true, unique_l=[1, 0], f=f)
+    if args.store_pred:
+        store_results(y_pred=y_pred, y_true=y_true,
+                      title=title, name=name)
 
 
-def test_model(model, ts_dl, title, name, cross, device):
-    if cross:
+def test_model(model, ts_dl, title, name, args, device):
+    if args.cross:
         for k in model:
-            test_model_fn(model[k], ts_dl, f'{title}/{k}', name, device)
+            test_model_fn(model[k], ts_dl, f'{title}/{k}', name, args, device)
     else:
-        test_model_fn(model, ts_dl, title, name,  device)
+        test_model_fn(model, ts_dl, title, name, args, device)
 
 
 def init_folder(title, add_time=True):
@@ -55,7 +60,7 @@ def init_folder(title, add_time=True):
 
 
 def main(args):
-    args.title = init_folder(args.title)
+    args.title = init_folder(args.title, add_time=False)
     device = torch.device("cpu" if not torch.cuda.is_available()
                           else args.device)
     log(f'Device: {device}', args.log, 1)
@@ -74,8 +79,8 @@ def main(args):
         optimizer, title=args.title, log=args.log,
         epochs=args.md_epochs, device=device)
     best_model = get_best_model(tr_dl, args, device)
-    test_model(model, ts_dl, args.title,  'Last_model', args.cross,  device)
-    test_model(best_model, ts_dl, args.title, 'Best_model', args.cross, device)
+    test_model(model, ts_dl, args.title,  'Last_model', args,  device)
+    test_model(best_model, ts_dl, args.title, 'Best_model', args, device)
     store_results(l_tt=l_tt, l_vt=l_vt, title=args.title, name='loss')
 
 

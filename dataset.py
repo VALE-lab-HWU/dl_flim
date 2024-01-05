@@ -10,6 +10,9 @@ sys.path.append(os.path.dirname(os.path.abspath('.'))+'/dl_helper')
 from utils import n_t
 
 
+# '20181023', '20181026', '20181031', '20181115', '20181123', '20190129',
+# '20190130', '20190201', '20190208', '20190220', '20190227']
+
 class FLImDataset(Dataset):
 
     FILENAME = 'all_patient.pickle'

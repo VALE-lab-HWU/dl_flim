@@ -105,6 +105,9 @@ def parse_args(name):
                       help="Log level. Can be 0 (nothing) or 1-2")
     argp.add_argument('--title', type=str, default="flim_cnn",
                       help="Title of the file to save the model in")
+    argp.add_argument("--store_pred", action='store_true',
+                      help="Flag to store the predictions")
+    argp.set_defaults(store_pred=False)
     argp = parse_args_ds(argp)
     argp = parse_args_dl(argp)
     argp = parse_args_md(argp)
