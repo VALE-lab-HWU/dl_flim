@@ -25,7 +25,7 @@ from models.paper.convnext import get_convnext_flim
 MD_DICT = {'resnet': get_resnet_50_flim, 'convnext': get_convnext_flim}
 
 
-def test_model_fn(model, ts_dl, title, name, args, device):
+def test_model_fn(model, v_dl, ts_dl, title, name, args, device):
     print(f'Testing {title} {name}')
     y_pred, y_true = dl_helper.test(ts_dl, model, device=device)
     y_pred = torch.argmax(y_pred, dim=1).contiguous().view(-1).cpu()
@@ -37,14 +37,18 @@ def test_model_fn(model, ts_dl, title, name, args, device):
     if args.store_pred:
         store_results(y_pred=y_pred, y_true=y_true,
                       title=title, name=name)
+        v_dl.dataset.validate()
+        test_model_fn(model, v_dl, args.title, name+'_val',  args, device,
+                      val=True)
 
 
-def test_model(model, ts_dl, title, name, args, device):
+def test_model(model, v_dl, ts_dl, title, name, args, device):
     if args.cross:
         for k in model:
-            test_model_fn(model[k], ts_dl, f'{title}/{k}', name, args, device)
+            test_model_fn(model[k], v_dl, ts_dl,
+                          f'{title}/{k}', name, args, device)
     else:
-        test_model_fn(model, ts_dl, title, name, args, device)
+        test_model_fn(model, v_dl, ts_dl, title, name, args, device)
 
 
 def init_folder(title, add_time=True):
@@ -78,9 +82,11 @@ def main(args):
         tr_dl, v_dl, model, loss_fn,
         optimizer, title=args.title, log=args.log,
         epochs=args.md_epochs, device=device)
-    best_model = get_best_model(tr_dl, args, device)
-    test_model(model, ts_dl, args.title,  'Last_model', args,  device)
-    test_model(best_model, ts_dl, args.title, 'Best_model', args, device)
+    if args.md_epochs > 0:
+        best_model = get_best_model(tr_dl, args, device)
+        test_model(best_model, v_dl, ts_dl, args.title, 'Best_model',
+                   args, device)
+    test_model(model, v_dl, ts_dl, args.title,  'Last_model', args,  device)
     store_results(l_tt=l_tt, l_vt=l_vt, title=args.title, name='loss')
 
 
