@@ -220,6 +220,7 @@ def get_dataset(args):
     )
     dataset = FLImDataset(
         n_img=args.ds_n_img,
+        n_per_img=args.ds_nper_img,
         seed=args.seed,
         transforms=transforms,
     )

@@ -27,7 +27,8 @@ class FLImDataset(Dataset):
             clean_prefix='MDCEBL',
             shape=128,
             seed=42,
-            n_img=-1
+            n_img=-1,
+            n_per_img=-1,
     ):
         self.seed = seed
 
@@ -36,7 +37,7 @@ class FLImDataset(Dataset):
         self.read_data(path, cleaned, band, clean_prefix)
         self.format_data(datatype)
         self.reshape_data(shape)
-        self.cut_data(n_img)
+        self.cut_data(n_img, n_per_img)
         self.to_tensor()
 
         self.idx = np.arange(len(self.data))
@@ -156,12 +157,23 @@ class FLImDataset(Dataset):
         self.data = self.data.reshape(self.data.shape[0], shape,
                                       shape, self.data.shape[2])
 
-    def cut_data(self, n_img):
+    def cut_data(self, n_img, n_per_img):
         if n_img != -1:
             self.data = self.data[:n_img]
             self.label = self.label[:n_img]
             self.band = self.band[:n_img]
             self.patient = self.patient[:n_img]
+        elif n_per_img != -1.:
+            pat, count = np.unique(self.patient, return_counts=1)
+            idx_t = []
+            for i, p in enumerate(pat):
+                tmp_c = int(n_per_img * count[i])
+                idx = np.where(self.patient == p)[0][:tmp_c]
+                idx_t.extend(idx)
+            self.data = self.data[idx_t]
+            self.label = self.label[idx_t]
+            self.band = self.band[idx_t]
+            self.patient = self.patient[idx_t]
 
     def to_tensor(self):
         self.data = torch.from_numpy(self.data).float()

@@ -5,6 +5,9 @@ def parse_args_ds(argp):
     argp.add_argument('--n_img', type=int, default=-1,
                       help="Limit to the number of image to load",
                       dest='ds_n_img')
+    argp.add_argument('--n_per_img', type=float, default=-1.,
+                      help="Limit to the number of image to load in %",
+                      dest='ds_nper_img')
     return argp
 
 
